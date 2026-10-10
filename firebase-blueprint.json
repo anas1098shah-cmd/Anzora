@@ -1,0 +1,276 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "An electronics accessory product in the ANZORA catalog.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the product (3 to 120 chars)."
+        },
+        "category": {
+          "type": "string",
+          "description": "Product category.",
+          "enum": [
+            "Wireless earbuds",
+            "Headphones",
+            "Handsfree",
+            "Charging cables",
+            "Mobile chargers and adapters",
+            "Smartwatches",
+            "Ring lights",
+            "Mobile accessories"
+          ]
+        },
+        "pricePkr": {
+          "type": "integer",
+          "description": "Current selling price in PKR."
+        },
+        "originalPricePkr": {
+          "type": "integer",
+          "description": "Original MSRP price in PKR before discount."
+        },
+        "stock": {
+          "type": "integer",
+          "description": "Available inventory units."
+        },
+        "sku": {
+          "type": "string",
+          "description": "Product SKU identifier."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed product description and features."
+        },
+        "specs": {
+          "type": "string",
+          "description": "Key technical specifications."
+        },
+        "imageUrls": {
+          "type": "array",
+          "description": "List of product image URLs or resource keys (up to 6)."
+        },
+        "featured": {
+          "type": "boolean",
+          "description": "Whether the product is highlighted on the homepage."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the product is visible in the catalog."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp (clients must write FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp (clients must write FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "name",
+        "category",
+        "pricePkr",
+        "originalPricePkr",
+        "stock",
+        "sku",
+        "description",
+        "specs",
+        "imageUrls",
+        "featured",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StoreConfig": {
+      "title": "StoreConfig",
+      "description": "Global ANZORA store configuration such as delivery fee, free delivery threshold, and promotional banner text.",
+      "type": "object",
+      "properties": {
+        "deliveryFeePkr": {
+          "type": "integer",
+          "description": "Standard nationwide delivery fee in PKR."
+        },
+        "freeDeliveryThresholdPkr": {
+          "type": "integer",
+          "description": "Order subtotal in PKR above which delivery is free."
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "Official ANZORA WhatsApp ordering number."
+        },
+        "announcementBanner": {
+          "type": "string",
+          "description": "Top promotional banner message."
+        },
+        "supportEmail": {
+          "type": "string",
+          "description": "Customer support email."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp (clients must write FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "deliveryFeePkr",
+        "freeDeliveryThresholdPkr",
+        "whatsappNumber",
+        "announcementBanner",
+        "supportEmail",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order placed via Cash on Delivery or WhatsApp checkout.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the customer who placed the order."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Full name of the recipient."
+        },
+        "customerPhone": {
+          "type": "string",
+          "description": "Pakistani phone number for delivery coordination."
+        },
+        "customerCity": {
+          "type": "string",
+          "description": "Delivery city in Pakistan."
+        },
+        "customerAddress": {
+          "type": "string",
+          "description": "Complete street/house delivery address."
+        },
+        "orderNotes": {
+          "type": "string",
+          "description": "Optional special delivery instructions."
+        },
+        "itemsSummary": {
+          "type": "string",
+          "description": "Formatted multi-line summary of ordered items, quantities, and unit prices."
+        },
+        "itemCount": {
+          "type": "integer",
+          "description": "Total number of units in the order."
+        },
+        "subtotalPkr": {
+          "type": "integer",
+          "description": "Order items subtotal in PKR."
+        },
+        "deliveryFeePkr": {
+          "type": "integer",
+          "description": "Applied delivery fee in PKR."
+        },
+        "totalPkr": {
+          "type": "integer",
+          "description": "Final payable Cash on Delivery amount in PKR."
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["COD", "COD_WHATSAPP"],
+          "description": "Selected checkout method."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Cancelled"],
+          "description": "Current order fulfillment status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Order placement timestamp (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last status update timestamp (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "customerName",
+        "customerPhone",
+        "customerCity",
+        "customerAddress",
+        "orderNotes",
+        "itemsSummary",
+        "itemCount",
+        "subtotalPkr",
+        "deliveryFeePkr",
+        "totalPkr",
+        "paymentMethod",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Customer saved delivery profile isolated per user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Saved recipient name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Saved Pakistani mobile number."
+        },
+        "city": {
+          "type": "string",
+          "description": "Saved city."
+        },
+        "address": {
+          "type": "string",
+          "description": "Saved street address."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Profile update timestamp."
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "phone",
+        "city",
+        "address",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Shared ANZORA product catalog and inventory."
+    },
+    "/store_config/{configId}": {
+      "schema": { "$ref": "#/entities/StoreConfig" },
+      "description": "Global store delivery fee and banner configuration."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders shared between storefront, Android app, and admin dashboard."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private customer delivery address and contact preferences."
+    }
+  }
+}

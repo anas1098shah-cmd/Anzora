@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">ANZORA</string>
+    <string name="brand_tagline">Premium Electronics Accessories • Pakistan</string>
+    <string name="whatsapp_number">+923712047636</string>
+    <string name="payment_method_cod">Cash on Delivery (COD)</string>
+    <string name="search_placeholder">Search earbuds, chargers, smartwatches…</string>
+    <string name="nav_shop">Shop</string>
+    <string name="nav_categories">Categories</string>
+    <string name="nav_cart">Cart</string>
+    <string name="nav_account">Account</string>
+    <string name="nav_info">Info &amp; Admin</string>
+    <string name="btn_add_to_cart">Add to Cart</string>
+    <string name="btn_out_of_stock">Out of Stock</string>
+    <string name="btn_checkout_cod">Place Cash on Delivery Order</string>
+    <string name="btn_checkout_whatsapp">Order via WhatsApp (+92 371 2047636)</string>
+    <string name="whatsapp_send_notice">Important: Opening WhatsApp prefills your order summary. You must press the Send button inside WhatsApp for ANZORA to receive your WhatsApp message.</string>
+    <string name="empty_cart_title">Your ANZORA Cart is Empty</string>
+    <string name="empty_cart_subtitle">Explore our premium wireless earbuds, fast GaN chargers, smartwatches, and studio accessories across Pakistan.</string>
+    <string name="admin_portal_title">ANZORA Protected Admin Dashboard</string>
+</resources>

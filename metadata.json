@@ -1,0 +1,6 @@
+{
+  "name": "ANZORA",
+  "description": "Premium electronics accessories e-commerce store and admin dashboard for ANZORA Pakistan",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

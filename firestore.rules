@@ -1,0 +1,269 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable hardened global helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Bootstrapped Admin + trusted /admins/{uid} document lookup
+    function isAdmin() {
+      return isSignedIn() && (
+        (
+          'email' in request.auth.token &&
+          request.auth.token.email == 'anas1098shah@gmail.com' &&
+          request.auth.token.email_verified == true
+        ) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidCategory(cat) {
+      return cat is string && cat in [
+        'Wireless earbuds',
+        'Headphones',
+        'Handsfree',
+        'Charging cables',
+        'Mobile chargers and adapters',
+        'Smartwatches',
+        'Ring lights',
+        'Mobile accessories'
+      ];
+    }
+
+    function isValidProduct(data) {
+      return data.name is string && data.name.size() >= 2 && data.name.size() <= 120 &&
+             isValidCategory(data.category) &&
+             data.pricePkr is int && data.pricePkr >= 50 && data.pricePkr <= 1000000 &&
+             data.originalPricePkr is int && data.originalPricePkr >= data.pricePkr && data.originalPricePkr <= 1000000 &&
+             data.stock is int && data.stock >= 0 && data.stock <= 100000 &&
+             data.sku is string && data.sku.size() >= 2 && data.sku.size() <= 40 &&
+             data.description is string && data.description.size() >= 5 && data.description.size() <= 2000 &&
+             data.specs is string && data.specs.size() >= 2 && data.specs.size() <= 1500 &&
+             data.imageUrls is list && data.imageUrls.size() >= 1 && data.imageUrls.size() <= 6 &&
+             data.imageUrls[0] is string && data.imageUrls[0].size() >= 1 && data.imageUrls[0].size() <= 600 &&
+             data.featured is bool &&
+             data.active is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidStoreConfig(data) {
+      return data.deliveryFeePkr is int && data.deliveryFeePkr >= 0 && data.deliveryFeePkr <= 10000 &&
+             data.freeDeliveryThresholdPkr is int && data.freeDeliveryThresholdPkr >= 0 && data.freeDeliveryThresholdPkr <= 500000 &&
+             data.whatsappNumber is string && data.whatsappNumber.size() >= 8 && data.whatsappNumber.size() <= 25 &&
+             data.announcementBanner is string && data.announcementBanner.size() >= 3 && data.announcementBanner.size() <= 250 &&
+             data.supportEmail is string && data.supportEmail.size() >= 5 && data.supportEmail.size() <= 120 &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidOrder(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100 &&
+             data.customerPhone is string && data.customerPhone.size() >= 7 && data.customerPhone.size() <= 25 &&
+             data.customerCity is string && data.customerCity.size() >= 2 && data.customerCity.size() <= 80 &&
+             data.customerAddress is string && data.customerAddress.size() >= 5 && data.customerAddress.size() <= 400 &&
+             data.orderNotes is string && data.orderNotes.size() <= 500 &&
+             data.itemsSummary is string && data.itemsSummary.size() >= 3 && data.itemsSummary.size() <= 3000 &&
+             data.itemCount is int && data.itemCount >= 1 && data.itemCount <= 500 &&
+             data.subtotalPkr is int && data.subtotalPkr >= 50 && data.subtotalPkr <= 10000000 &&
+             data.deliveryFeePkr is int && data.deliveryFeePkr >= 0 && data.deliveryFeePkr <= 10000 &&
+             data.totalPkr is int && data.totalPkr == data.subtotalPkr + data.deliveryFeePkr &&
+             data.paymentMethod is string && data.paymentMethod in ['COD', 'COD_WHATSAPP'] &&
+             data.status is string && data.status in ['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.fullName is string && data.fullName.size() <= 100 &&
+             data.phone is string && data.phone.size() <= 25 &&
+             data.city is string && data.city.size() <= 80 &&
+             data.address is string && data.address.size() <= 400 &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Admins Registry (read-only for self/admin, managed via console/backend)
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list, create, update, delete: if false;
+    }
+
+    // Shared Product Catalog
+    match /products/{productId} {
+      allow get: if isSignedIn() && isValidId(productId) && (existing().active == true || isAdmin());
+      allow list: if isSignedIn() && (existing().active == true || isAdmin());
+
+      allow create: if isSignedIn() &&
+                       isValidId(productId) &&
+                       incoming().keys().hasAll([
+                         'name', 'category', 'pricePkr', 'originalPricePkr', 'stock',
+                         'sku', 'description', 'specs', 'imageUrls', 'featured', 'active',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'name', 'category', 'pricePkr', 'originalPricePkr', 'stock',
+                         'sku', 'description', 'specs', 'imageUrls', 'featured', 'active',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidProduct(incoming()) &&
+                       isAdmin();
+
+      allow update: if isSignedIn() &&
+                       isValidId(productId) &&
+                       isValidProduct(incoming()) &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Admin full product update
+                         (
+                           isAdmin() &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'name', 'category', 'pricePkr', 'originalPricePkr', 'stock',
+                             'sku', 'description', 'specs', 'imageUrls', 'featured', 'active',
+                             'updatedAt'
+                           ])
+                         ) ||
+                         // Action 2: Authenticated customer stock deduction during checkout
+                         (
+                           existing().active == true &&
+                           incoming().stock < existing().stock &&
+                           incoming().stock >= 0 &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['stock', 'updatedAt'])
+                         )
+                       );
+
+      allow delete: if isSignedIn() && isValidId(productId) && isAdmin();
+    }
+
+    // Store Configuration (Delivery Fee, Free Delivery Threshold, WhatsApp Number, Banner)
+    match /store_config/{configId} {
+      allow get: if isSignedIn() && isValidId(configId) && configId == 'global' && existing().deliveryFeePkr >= 0;
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       isValidId(configId) &&
+                       configId == 'global' &&
+                       incoming().keys().hasAll([
+                         'deliveryFeePkr', 'freeDeliveryThresholdPkr', 'whatsappNumber',
+                         'announcementBanner', 'supportEmail', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'deliveryFeePkr', 'freeDeliveryThresholdPkr', 'whatsappNumber',
+                         'announcementBanner', 'supportEmail', 'updatedAt'
+                       ]) &&
+                       isValidStoreConfig(incoming()) &&
+                       isAdmin();
+
+      allow update: if isSignedIn() &&
+                       isValidId(configId) &&
+                       configId == 'global' &&
+                       isValidStoreConfig(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'deliveryFeePkr', 'freeDeliveryThresholdPkr', 'whatsappNumber',
+                         'announcementBanner', 'supportEmail', 'updatedAt'
+                       ]) &&
+                       isAdmin();
+
+      allow delete: if false;
+    }
+
+    // Customer Orders
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status == 'Pending' &&
+                       incoming().keys().hasAll([
+                         'userId', 'customerName', 'customerPhone', 'customerCity',
+                         'customerAddress', 'orderNotes', 'itemsSummary', 'itemCount',
+                         'subtotalPkr', 'deliveryFeePkr', 'totalPkr', 'paymentMethod',
+                         'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'customerName', 'customerPhone', 'customerCity',
+                         'customerAddress', 'orderNotes', 'itemsSummary', 'itemCount',
+                         'subtotalPkr', 'deliveryFeePkr', 'totalPkr', 'paymentMethod',
+                         'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidOrder(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(orderId) &&
+                       isValidOrder(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt && (
+                         // Action 1: Admin order status or notes management
+                         (
+                           isAdmin() &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'status', 'orderNotes', 'updatedAt'
+                           ])
+                         ) ||
+                         // Action 2: Customer cancelling their own Pending order (Terminal state locked once Delivered/Cancelled)
+                         (
+                           existing().userId == request.auth.uid &&
+                           existing().status == 'Pending' &&
+                           incoming().status == 'Cancelled' &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+                         )
+                       );
+
+      allow delete: if isSignedIn() && isValidId(orderId) && isAdmin();
+    }
+
+    // Private Customer Saved Delivery Profile (PII Isolated)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'userId', 'fullName', 'phone', 'city', 'address', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'fullName', 'phone', 'city', 'address', 'updatedAt'
+                       ]) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'fullName', 'phone', 'city', 'address', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+    }
+  }
+}
